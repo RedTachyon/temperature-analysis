@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import utils
 import heuristics
+import filters
 
 plt.rcParams['figure.figsize'] = (18, 6)
 
@@ -28,7 +29,7 @@ class Series:
         self.processed = None
         self.detected = None
 
-    def preprocess(self, method=lambda x: x):
+    def preprocess(self, method=lambda x: x, *args, **kwargs):
         """
         Filters the temperature with a chosen function.
 
@@ -38,7 +39,7 @@ class Series:
         Returns:
             filtered_temperature, array
         """
-        self.filtered_temperature = method(self.temperature)
+        self.filtered_temperature = method(self.temperature, *args, **kwargs)
         return self.filtered_temperature
 
     def process(self, method, window):
@@ -97,8 +98,14 @@ if __name__ == "__main__":
     X, Y1, Y2 = utils.read_data("data.pickle")
 
     data = Series(X, Y1)
-    data.preprocess()
-    data.process(heuristics.base_mean_heuristic, 5)
-    data.detect(.01)
+    data.preprocess(filters.mean_filter, 21)
 
-    data.plot(linewidth=.5)
+    plt.plot(data.temperature)
+    plt.plot(data.filtered_temperature)
+    plt.show()
+
+
+    # data.process(heuristics.base_mean_heuristic, 5)
+    # data.detect(.015)
+    #
+    # data.plot(linewidth=.5)
