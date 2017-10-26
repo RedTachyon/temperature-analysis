@@ -104,7 +104,6 @@ if __name__ == "__main__":
     plt.plot(data.filtered_temperature)
     plt.show()
 
-
     # data.process(heuristics.base_mean_heuristic, 5)
     # data.detect(.015)
     #

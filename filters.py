@@ -4,6 +4,16 @@ from utils import rolling_window
 
 
 def mean_filter(data, window):
+    """
+    Basic filter returning a running average.
+
+    Args:
+        data: array
+        window: int
+
+    Returns:
+        array
+    """
     pad = window // 2
 
     rolled = rolling_window(data, window).mean(1)
