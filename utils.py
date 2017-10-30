@@ -8,11 +8,11 @@ def rolling_window(series, window):
     Adds an extra dimension to the array, which can then be used to do whatever you need to do on windows.
 
     Args:
-        series: array, series to be unrolled
+        series: np.array, series to be unrolled
         window: int, size of the rolling window
 
     Returns:
-        array
+        np.array
     """
     shape = series.shape[:-1] + (series.shape[-1] - window + 1, window)
     strides = series.strides + (series.strides[-1],)
