@@ -35,9 +35,19 @@ def read_data(path, low=275000, high=300000):
     Y2 = data['upT_av'].squeeze()
     # LWC = data['lwc1V_av']
     X = np.arange(Y1.shape[0]) / 100.
+    # X = data['time_av'].squeeze()
+    if low is not None and high is not None:
+        X = X[low:high]
+        Y1 = Y1[low:high]
+        Y2 = Y2[low:high]
 
-    X_cut = X[low:high]
-    Y1_cut = Y1[low:high]
-    Y2_cut = Y2[low:high]
+    return X, Y1, Y2
 
-    return X_cut, Y1_cut, Y2_cut
+
+def array_range(a, low, high, ref=None):
+    """
+    Returns the array limited to values in selected range.
+    """
+    if ref is None:
+        ref = a
+    return a[np.logical_and(ref >= low, ref < high)]

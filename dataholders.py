@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
+from scipy.io import loadmat
+
 
 import utils
 import heuristics
@@ -105,6 +107,9 @@ class WindData:
 
     def __init__(self, wind_x, wind_y, wind_z):
         self.wind = (wind_x, wind_y, wind_z)
+        self.theta, self.phi = None, None
+
+        self._get_angles()
 
     def _get_angles(self):
         self.theta = np.arccos(self.wind[2] / np.sqrt(self.wind[0] ** 2 + self.wind[1] ** 2 + self.wind[2] ** 2))
@@ -112,3 +117,68 @@ class WindData:
 
         self.phi = np.arccos(self.wind[1] / np.sqrt(self.wind[0] ** 2 + self.wind[1] ** 2))
         self.phi = self.phi.ravel()
+
+
+class TempWindData:
+    """
+    Holds the temperature and wind data from a single flight.
+    """
+
+    def __init__(self, path_temp, path_wind):
+        self.path_temp = path_temp
+        self.path_wind = path_wind
+
+        self.v1, self.v2, self.v3, self.X_temp, self.X_wind, self.Y1, self.Y2 = None, None, None, None, None, None, None
+
+        self._load_data()
+        self._synchronize()
+
+    def _load_data(self):
+        """Loads the temperature and wind data from .mat files."""
+        winddata = loadmat(self.path_wind, variable_names=('sonic1', 'sonic2', 'sonic3',))
+        tempdata = loadmat(self.path_temp, variable_names=('lowT_av', 'upT_av', 'time_av'))
+
+        self.v1, self.v2, self.v3 = winddata['sonic1'].ravel(), winddata['sonic2'].ravel(), winddata['sonic3'].ravel()
+        self.X_wind = np.arange(self.v1.shape[0]) / 100.
+
+        self.X_temp = tempdata['time_av'].ravel()
+        self.Y1 = tempdata['lowT_av'].ravel()
+        self.Y2 = tempdata['upT_av'].ravel()
+
+    def _synchronize(self):
+        """Synchronizes the wind and temperature data."""
+        low = np.max((self.X_temp[0], self.X_wind[0]))
+        self.X_temp -= (self.X_temp[self.X_temp >= low][0] - self.X_wind[self.X_wind >= low][0])
+
+        high = np.min((self.X_temp[-1], self.X_wind[-1])) + 1e-9  # Includes a small constant to keep the same shape
+
+        self.v1 = utils.array_range(self.v1, low, high, self.X_wind)
+        self.v2 = utils.array_range(self.v2, low, high, self.X_wind)
+        self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
+        self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
+
+        self.Y1 = utils.array_range(self.Y1, low, high, self.X_temp)
+        self.Y2 = utils.array_range(self.Y2, low, high, self.X_temp)
+        self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
+
+    def cut_time(self, low, high):
+        """Restricts the data to a specific time."""
+        self.v1 = utils.array_range(self.v1, low, high, self.X_wind)
+        self.v2 = utils.array_range(self.v2, low, high, self.X_wind)
+        self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
+        self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
+
+        self.Y1 = utils.array_range(self.Y1, low, high, self.X_temp)
+        self.Y2 = utils.array_range(self.Y2, low, high, self.X_temp)
+        self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
+
+
+if __name__ == '__main__':
+    temp_path = 'data/raw/uft_flight07.mat'
+    wind_path = 'data/raw/actos_flight07.mat'
+
+    holder = TempWindData(temp_path, wind_path)
+
+    holder.cut_time(2750, 3000)
+
+    print(holder.v1.shape)
