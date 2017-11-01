@@ -4,7 +4,11 @@ This repository holds the code for analyzing the data from the Azores 2017 campa
 
 uft\_flightXX.mat and actos\_flightXX.mat files must be placed in the data/raw/ directory.
 
-Basic usage: run main.py (either with ./main.py or python3 main.py) to see the wind histograms. 
+Basic usage: 
+
+Install the required packages with pip3 install -r requirements.txt
+
+run main.py (either with ./main.py or python3 main.py) to see the wind histograms. 
 
 heuristics.py contains detection algorithms
 

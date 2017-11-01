@@ -1,13 +1,11 @@
 #!/bin/python3
 
-import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
-import utils
-import heuristics
-import filters
 import dataholders
+import filters
+import heuristics
 
 plt.rcParams['figure.figsize'] = (18, 6)
 
