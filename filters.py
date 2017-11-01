@@ -14,7 +14,6 @@ def mean_filter(data, window):
 
 
 def median_filter(data, window):
-
     pad = window // 2
 
     rolled = np.median(rolling_window(data, window), 1)

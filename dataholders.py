@@ -29,6 +29,7 @@ class TempData:
         self.processed = None
         self.detected = None
         self.filtered = None
+        self.mask = None
 
     def preprocess(self, method=lambda x: x, *args, **kwargs):
         """
@@ -83,15 +84,18 @@ class TempData:
             raise AttributeError("You must run processing first. "
                                  "If you don't know what to use, just use a simple max - min filter")
 
-        detected = np.where(self.processed > threshold)[0] / 100.
+        self.mask = self.processed > threshold
+        detected = np.where(self.mask)[0] / 100.
         detected += self.time[0]
 
         self.detected = detected
 
         # return self.detected
 
-    def plot(self, **kwargs):
-        plt.plot(self.time, self.temperature, linewidth=.5)
+    def plot(self, base=False):
+        plt.plot(self.time, self.temperature, linewidth=.5, color='b')
+        if base:
+            plt.plot(self.time, self.baseline, linewidth=1.2, color='y')
         if self.detected is not None:
             plt.vlines(self.detected, 13.8, 14.6, alpha=.25, linewidth=2.5, colors='r')
         plt.show()
@@ -105,18 +109,22 @@ class TempData:
 class WindData:
     """Holds the information about wind-related data."""
 
-    def __init__(self, wind_x, wind_y, wind_z):
+    def __init__(self, wind_x, wind_y, wind_z, degrees=False):
         self.wind = (wind_x, wind_y, wind_z)
         self.theta, self.phi = None, None
 
-        self._get_angles()
+        self._get_angles(degrees=degrees)
 
-    def _get_angles(self):
+    def _get_angles(self, degrees=False):
         self.theta = np.arccos(self.wind[2] / np.sqrt(self.wind[0] ** 2 + self.wind[1] ** 2 + self.wind[2] ** 2))
         self.theta = self.theta.ravel()
 
         self.phi = np.arccos(self.wind[1] / np.sqrt(self.wind[0] ** 2 + self.wind[1] ** 2))
         self.phi = self.phi.ravel()
+
+        if degrees:
+            self.theta *= 180 / np.pi
+            self.phi *= 180 / np.pi
 
 
 class TempWindData:
@@ -128,7 +136,8 @@ class TempWindData:
         self.path_temp = path_temp
         self.path_wind = path_wind
 
-        self.v1, self.v2, self.v3, self.X_temp, self.X_wind, self.Y1, self.Y2 = None, None, None, None, None, None, None
+        self.v1, self.v2, self.v3, self.X_temp, self.X_wind, self.T1, self.T2 = None, None, None, None, None, None, None
+        self.time = None
 
         self._load_data()
         self._synchronize()
@@ -142,8 +151,8 @@ class TempWindData:
         self.X_wind = np.arange(self.v1.shape[0]) / 100.
 
         self.X_temp = tempdata['time_av'].ravel()
-        self.Y1 = tempdata['lowT_av'].ravel()
-        self.Y2 = tempdata['upT_av'].ravel()
+        self.T1 = tempdata['lowT_av'].ravel()
+        self.T2 = tempdata['upT_av'].ravel()
 
     def _synchronize(self):
         """Synchronizes the wind and temperature data."""
@@ -157,9 +166,11 @@ class TempWindData:
         self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
         self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
 
-        self.Y1 = utils.array_range(self.Y1, low, high, self.X_temp)
-        self.Y2 = utils.array_range(self.Y2, low, high, self.X_temp)
+        self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
+        self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
+
+        self.time = self.X_wind
 
     def cut_time(self, low, high):
         """Restricts the data to a specific time."""
@@ -168,9 +179,11 @@ class TempWindData:
         self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
         self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
 
-        self.Y1 = utils.array_range(self.Y1, low, high, self.X_temp)
-        self.Y2 = utils.array_range(self.Y2, low, high, self.X_temp)
+        self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
+        self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
+
+        self.time = utils.array_range(self.time, low, high, self.time)
 
 
 if __name__ == '__main__':
