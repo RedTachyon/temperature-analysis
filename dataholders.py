@@ -29,7 +29,7 @@ class TempData:
         self.filtered = None
         self.mask = None
 
-    def preprocess(self, method=lambda x: x, *args, **kwargs):
+    def preprocess(self, method=lambda x, *args, **kwargs: x, *args, **kwargs):
         """
         Filters the temperature with a chosen function.
 
@@ -143,7 +143,7 @@ class TempWindData:
     def _load_data(self):
         """Loads the temperature and wind data from .mat files."""
         winddata = loadmat(self.path_wind, variable_names=('sonic1', 'sonic2', 'sonic3',))
-        tempdata = loadmat(self.path_temp, variable_names=('lowT_av', 'upT_av', 'time_av'))
+        tempdata = loadmat(self.path_temp, variable_names=('lowT_av', 'upT_av', 'time_av', 'lwc1V_av'))
 
         self.v1, self.v2, self.v3 = winddata['sonic1'].ravel(), winddata['sonic2'].ravel(), winddata['sonic3'].ravel()
         self.X_wind = np.arange(self.v1.shape[0]) / 100.
@@ -151,6 +151,7 @@ class TempWindData:
         self.X_temp = tempdata['time_av'].ravel()
         self.T1 = tempdata['lowT_av'].ravel()
         self.T2 = tempdata['upT_av'].ravel()
+        self.lwc = tempdata['lwc1V_av'].ravel()
 
     def _synchronize(self):
         """Synchronizes the wind and temperature data."""
@@ -166,6 +167,7 @@ class TempWindData:
 
         self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
         self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
+        self.lwc = utils.array_range(self.lwc, low, high, self.X_temp)
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
 
         self.time = self.X_wind
