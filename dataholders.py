@@ -136,6 +136,7 @@ class TempWindData:
 
         self.v1, self.v2, self.v3, self.X_temp, self.X_wind, self.T1, self.T2 = None, None, None, None, None, None, None
         self.time = None
+        self.lwc = None
 
         self._load_data()
         self._synchronize()
@@ -181,6 +182,7 @@ class TempWindData:
 
         self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
         self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
+        self.lwc = utils.array_range(self.lwc, low, high, self.X_temp)
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
 
         self.time = utils.array_range(self.time, low, high, self.time)

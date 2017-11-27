@@ -56,6 +56,7 @@ def plot_histograms(holder):
     # Compute the histograms
     hist_bad, xedg_bad, yedg_bad = np.histogram2d(theta_bad, phi_bad, bins=100, normed=True)
     hist_good, xedg_good, yedg_good = np.histogram2d(theta_good, phi_good, bins=100, normed=True)
+    hist_all, xedg_all, yedg_all = np.histogram2d(wind_data.theta, wind_data.phi, bins=100, normed=True)
 
     # Build the plot
     fig = plt.figure(figsize=(22, 8))
@@ -64,7 +65,7 @@ def plot_histograms(holder):
     limits_y = (83, 92) if DEGREES else (1.45, 1.61)
 
     # Only bad points
-    fig.add_subplot(131, axisbg='black')
+    fig.add_subplot(141, axisbg='black')
     plt.title("Anomalous points")
     plt.xlabel(r"$\theta$", fontsize=30)
     plt.ylabel(r"$\varphi$", fontsize=30, rotation=0)
@@ -73,7 +74,7 @@ def plot_histograms(holder):
     im1 = plt.imshow(hist_bad, interpolation='nearest', origin='low', cmap='gnuplot', alpha=1.,
                      extent=[xedg_bad[0], xedg_bad[-1], yedg_bad[0], yedg_bad[-1]])
     # Only good points
-    fig.add_subplot(132, axisbg='black')
+    fig.add_subplot(142, axisbg='black')
     plt.title("Non-anomalous points")
     plt.xlabel(r"$\theta$", fontsize=30)
     plt.ylabel(r"$\varphi$", fontsize=30, rotation=0)
@@ -83,17 +84,26 @@ def plot_histograms(holder):
                      extent=[xedg_good[0], xedg_good[-1], yedg_good[0], yedg_good[-1]])
 
     # Both good and bad points
-    fig.add_subplot(133, axisbg='black')
+    fig.add_subplot(143, axisbg='black')
     plt.title("All points")
     plt.xlabel(r"$\theta$", fontsize=30)
     plt.ylabel(r"$\varphi$", fontsize=30, rotation=0)
     plt.xlim(*limits_x)
     plt.ylim(*limits_y)
-    im1 = plt.imshow(hist_bad, interpolation='nearest', origin='low', cmap='gnuplot', alpha=0.9,
+    im1 = plt.imshow(hist_bad, interpolation='nearest', origin='low', cmap='gnuplot', alpha=1.,
                      extent=[xedg_bad[0], xedg_bad[-1], yedg_bad[0], yedg_bad[-1]])
 
-    im2 = plt.imshow(hist_good, interpolation='nearest', origin='low', cmap='cubehelix', alpha=0.9,
+    im2 = plt.imshow(hist_good, interpolation='nearest', origin='low', cmap='cubehelix', alpha=0.5,
                      extent=[xedg_good[0], xedg_good[-1], yedg_good[0], yedg_good[-1]])
+
+    fig.add_subplot(144, axisbg='black')
+    plt.title("All points")
+    plt.xlabel(r"$\theta$", fontsize=30)
+    plt.ylabel(r"$\varphi$", fontsize=30, rotation=0)
+    plt.xlim(*limits_x)
+    plt.ylim(*limits_y)
+    im1 = plt.imshow(hist_all, interpolation='nearest', origin='low', cmap='gnuplot', alpha=0.9,
+                     extent=[xedg_all[0], xedg_all[-1], yedg_all[0], yedg_all[-1]])
 
     plt.show()
 
