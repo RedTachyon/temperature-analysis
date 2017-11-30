@@ -122,8 +122,8 @@ def check_one(holder):
 
 if __name__ == "__main__":
     # Load the data
-    temp_path = 'data/raw/uft_flight07.mat'
-    wind_path = 'data/raw/actos_flight07.mat'
+    temp_path = '../data/raw/uft_flight07.mat'
+    wind_path = '../data/raw/actos_flight07.mat'
 
     data_holder = dataholders.TempWindData(temp_path, wind_path)
     #3950 4150

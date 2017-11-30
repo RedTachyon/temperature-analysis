@@ -186,6 +186,19 @@ class TempWindData:
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
 
         self.time = utils.array_range(self.time, low, high, self.time)
+        
+    def smooth_temperatures(self, method='mean', window=3):
+        if method == 'mean':
+            self.T1_smooth = filters.mean_filter(self.T1, window)
+            self.T2_smooth = filters.mean_filter(self.T2, window)
+        elif method == 'median':
+            self.T1_smooth = filters.median_filter(self.T1, window)
+            self.T2_smooth = filters.median_filter(self.T2, window)
+        else:
+            raise ValueError("Unsupported method. Use only 'mean' or 'median'")
+        
+        self.T1_res = self.T1 - self.T1_smooth
+        self.T2_res = self.T2 - self.T2_smooth
 
 
 if __name__ == '__main__':
