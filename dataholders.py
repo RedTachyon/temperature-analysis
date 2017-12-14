@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
+from scipy.optimize import curve_fit
 
 
 import utils
@@ -130,10 +131,11 @@ class TempWindData:
     Holds the temperature and wind data from a single flight.
     """
 
-    def __init__(self, path_temp, path_wind):
+    def __init__(self, path_temp, path_wind, voltage=False):
         self.path_temp = path_temp
         self.path_wind = path_wind
-
+        self.voltage = voltage
+        
         self.v1, self.v2, self.v3, self.X_temp, self.X_wind, self.T1, self.T2 = None, None, None, None, None, None, None
         self.time = None
         self.lwc = None
@@ -143,8 +145,14 @@ class TempWindData:
 
     def _load_data(self):
         """Loads the temperature and wind data from .mat files."""
-        winddata = loadmat(self.path_wind, variable_names=('sonic1', 'sonic2', 'sonic3',))
-        tempdata = loadmat(self.path_temp, variable_names=('lowT_av', 'upT_av', 'time_av', 'lwc1V_av'))
+        wind_vars = ['sonic1', 'sonic2', 'sonic3']
+        if self.voltage:
+            wind_vars.append('sonicPRT')
+        temp_vars = ['lowT_av', 'upT_av', 'time_av', 'lwc1V_av']
+        if self.voltage:
+            temp_vars += ['lowV_av', 'upV_av']
+        winddata = loadmat(self.path_wind, variable_names=wind_vars)
+        tempdata = loadmat(self.path_temp, variable_names=temp_vars)
 
         self.v1, self.v2, self.v3 = winddata['sonic1'].ravel(), winddata['sonic2'].ravel(), winddata['sonic3'].ravel()
         self.X_wind = np.arange(self.v1.shape[0]) / 100.
@@ -153,6 +161,10 @@ class TempWindData:
         self.T1 = tempdata['lowT_av'].ravel()
         self.T2 = tempdata['upT_av'].ravel()
         self.lwc = tempdata['lwc1V_av'].ravel()
+        if self.voltage:
+            self.V1 = tempdata['lowV_av'].ravel()
+            self.V2 = tempdata['upV_av'].ravel()
+            self.T_base = winddata['sonicPRT'].ravel()
 
     def _synchronize(self):
         """Synchronizes the wind and temperature data."""
@@ -164,12 +176,18 @@ class TempWindData:
         self.v1 = utils.array_range(self.v1, low, high, self.X_wind)
         self.v2 = utils.array_range(self.v2, low, high, self.X_wind)
         self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
+        self.T_base = utils.array_range(self.T_base, low, high, self.X_wind)
         self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
 
         self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
         self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
         self.lwc = utils.array_range(self.lwc, low, high, self.X_temp)
+        if self.voltage:
+                self.V1 = utils.array_range(self.V1, low, high, self.X_temp)
+                self.V2 = utils.array_range(self.V2, low, high, self.X_temp)
+        
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
+        
 
         self.time = self.X_wind
 
@@ -178,13 +196,17 @@ class TempWindData:
         self.v1 = utils.array_range(self.v1, low, high, self.X_wind)
         self.v2 = utils.array_range(self.v2, low, high, self.X_wind)
         self.v3 = utils.array_range(self.v3, low, high, self.X_wind)
+        self.T_base = utils.array_range(self.T_base, low, high, self.X_wind)
         self.X_wind = utils.array_range(self.X_wind, low, high, self.X_wind)
 
         self.T1 = utils.array_range(self.T1, low, high, self.X_temp)
         self.T2 = utils.array_range(self.T2, low, high, self.X_temp)
         self.lwc = utils.array_range(self.lwc, low, high, self.X_temp)
+        if self.voltage:
+            self.V1 = utils.array_range(self.V1, low, high, self.X_temp)
+            self.V2 = utils.array_range(self.V2, low, high, self.X_temp)
         self.X_temp = utils.array_range(self.X_temp, low, high, self.X_temp)
-
+            
         self.time = utils.array_range(self.time, low, high, self.time)
         
     def smooth_temperatures(self, method='mean', window=3):
@@ -199,6 +221,40 @@ class TempWindData:
         
         self.T1_res = self.T1 - self.T1_smooth
         self.T2_res = self.T2 - self.T2_smooth
+        
+    def get_temp_from_voltage(self, window=None):
+        """
+        Callibrates the voltage with the base temperature and puts the new temperature estimates to self.T1, self.T2
+        """
+        assert self.voltage
+
+        self.T1_old = self.T1
+        self.T2_old = self.T2
+        
+        linear = lambda x, a, b: a*x + b
+        # To do: add the possibility to callibrate using a specific period
+        if window is None:
+            popt1, _ = curve_fit(linear, self.V1, self.T_base)
+            popt2, _ = curve_fit(linear, self.V2, self.T_base)
+        else:
+            popt1, _ = curve_fit(linear, utils.rolling_window(self.V1, window).mean(1)[::window], 
+                                 utils.rolling_window(self.T_base, window).mean(1)[::window])
+            popt2, _ = curve_fit(linear, utils.rolling_window(self.V2, window).mean(1)[::window], 
+                                 utils.rolling_window(self.T_base, window).mean(1)[::window])
+            
+        self.T1 = linear(self.V1, *popt1)
+        self.T2 = linear(self.V2, *popt2)
+        
+    def get_angles(self, degrees=False):
+        self.theta = np.arccos(self.v3 / np.sqrt(self.v1 ** 2 + self.v2 ** 2 + self.v3 ** 2))
+        self.theta = self.theta.ravel()
+
+        self.phi = np.arccos(self.v2 / np.sqrt(self.v1 ** 2 + self.v2 ** 2))
+        self.phi = self.phi.ravel()
+
+        if degrees:
+            self.theta *= 180 / np.pi
+            self.phi *= 180 / np.pi
 
 
 if __name__ == '__main__':
