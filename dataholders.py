@@ -190,6 +190,7 @@ class TempWindData:
         
 
         self.time = self.X_wind
+        self.X_temp = self.time
 
     def cut_time(self, low, high):
         """Restricts the data to a specific time."""
@@ -245,6 +246,7 @@ class TempWindData:
         self.T1 = linear(self.V1, *popt1)
         self.T2 = linear(self.V2, *popt2)
         
+        
     def get_angles(self, degrees=False):
         self.theta = np.arccos(self.v3 / np.sqrt(self.v1 ** 2 + self.v2 ** 2 + self.v3 ** 2))
         self.theta = self.theta.ravel()
@@ -255,7 +257,29 @@ class TempWindData:
         if degrees:
             self.theta *= 180 / np.pi
             self.phi *= 180 / np.pi
-
+        
+        
+    def get_temp_deviations(self, window):
+        baseline1 = utils.rolling_window(self.T1, window).mean(1)
+        baseline2 = utils.rolling_window(self.T2, window).mean(1)
+        
+        self.T1_dev = self.T1[window//2:-window//2+1] - baseline1
+        self.T2_dev = self.T2[window//2:-window//2+1] - baseline2
+        
+        self.DT = self.T1 - self.T2
+        
+        baselineD = utils.rolling_window(self.DT, window).mean(1)
+        self.DT_dev = self.DT[window//2:-window//2+1] - baselineD
+    
+    
+    def get_angle_deviations(self, window):
+        assert hasattr(self, 'theta')
+        
+        baseline_theta = utils.rolling_window(self.theta, window).mean(1)
+        baseline_phi = utils.rolling_window(self.phi, window).mean(1)
+        
+        self.theta_dev = self.theta[window//2:-window//2+1] - baseline_theta
+        self.phi_dev = self.phi[window//2:-window//2+1] - baseline_phi
 
 if __name__ == '__main__':
     temp_path = 'data/raw/uft_flight07.mat'
