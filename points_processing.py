@@ -3,6 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
+from tqdm import tqdm
 
 import dataholders as dh
 import utils
@@ -60,3 +61,56 @@ def prepare_data(points_path='../data/points.txt', data_path='data/data_flight16
                               np.in1d(time, df[df.thermometer == 1].value_before)
                              ).astype(int)
     return time, low_labels, up_labels, lowT, upT
+
+def smear_labels(a: np.ndarray, size: int) -> np.ndarray:
+    """
+    Gives positive labels to points within $size points of actual positive labels.
+    
+    Args:
+        a: np.array, labels array
+        size: int, how far away the labels are smeared
+    """
+    
+    pad = size # Amount of zero's to add on both sides
+    a_padded = np.concatenate((np.zeros(pad), a, np.zeros(pad)))
+    rolled = utils.rolling_window(a_padded, size*2 + 1)
+    
+    return rolled.max(1).astype(a.dtype)
+
+def generate_positive(labels, time, temperature):
+    """
+    Generates time and temperature vectors of length 20 (to be variablefied), containing a jump.
+    """
+    time_data        = []
+    temperature_data = []
+    
+    for i, val in tqdm(enumerate(labels), total=len(labels)):
+        window = labels[i:i+20] # 20: how many points around a jump
+        hit = np.array([1,1])
+        l_l, l_r = i+4, i+6   # jump is on the left   of the interval
+        c_l, c_r = i+9, i+11  # jump is in the center of the interval
+        r_l, r_r = i+14, i+16 # jump is on the right  of the interval
+
+        if np.array_equal(labels[l_l:l_r], hit) or np.array_equal(labels[c_l:c_r], hit) or np.array_equal(labels[r_l:r_r], hit):
+            time_data.append(time[i:i+20])
+            temperature_data.append(temperature[i:i+20])
+
+    return np.array(time_data), np.array(temperature_data)
+
+def generate_negative(labels, time, temperature):
+    """
+    Generates time and temperature vectors of length 20, hopefully not containing a jump, in a safe distance from actual jumps.
+    """
+    labels = labels.copy()
+
+    time_data        = []
+    temperature_data = []
+
+    for i, val in tqdm(enumerate(labels), total=len(labels)):
+        window = labels[i:i+50]
+        if window.max() == 0 and i + 50 < len(labels):
+            time_data.append(time[i+15:i+35])
+            temperature_data.append(temperature[i+15:i+35])
+            labels[i:i+50] = 1
+    
+    return np.array(time_data), np.array(temperature_data)
