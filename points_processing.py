@@ -77,23 +77,23 @@ def smear_labels(a: np.ndarray, size: int) -> np.ndarray:
     
     return rolled.max(1).astype(a.dtype)
 
-def generate_positive(labels, time, temperature):
+def generate_positive(labels, time, temperature, size=20):
     """
-    Generates time and temperature vectors of length 20 (to be variablefied), containing a jump.
+    Generates time and temperature vectors of length $size (preferably even), containing a jump.
     """
     time_data        = []
     temperature_data = []
     
     for i, val in tqdm(enumerate(labels), total=len(labels)):
-        window = labels[i:i+20] # 20: how many points around a jump
+        window = labels[i:i+size] # size: how many points around a jump
         hit = np.array([1,1])
-        l_l, l_r = i+4, i+6   # jump is on the left   of the interval
-        c_l, c_r = i+9, i+11  # jump is in the center of the interval
-        r_l, r_r = i+14, i+16 # jump is on the right  of the interval
+        l_l, l_r = i + (1*size/4 - 1), i + (1*size/4 + 1) # jump is on the left   of the interval
+        c_l, c_r = i + (2*size/4 - 1), i + (2*size/4 + 1) # jump is in the center of the interval
+        r_l, r_r = i + (3*size/4 - 1), i + (3*size/4 + 1) # jump is on the right  of the interval
 
         if np.array_equal(labels[l_l:l_r], hit) or np.array_equal(labels[c_l:c_r], hit) or np.array_equal(labels[r_l:r_r], hit):
-            time_data.append(time[i:i+20])
-            temperature_data.append(temperature[i:i+20])
+            time_data.append(time[i:i+size])
+            temperature_data.append(temperature[i:i+size])
 
     return np.array(time_data), np.array(temperature_data)
 
